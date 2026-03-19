@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Research Explainer Engine</title>
+  <meta name="description" content="AI-powered research assistant that searches the web, extracts knowledge, and generates structured multi-level explanations." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=20240313-3" />
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        enableMenu: false,
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      },
+      startup: {
+        ready: () => {
+          console.log('MathJax is ready');
+          MathJax.startup.defaultReady();
+          MathJax.startup.promise.then(() => {
+            console.log('MathJax typesetting complete');
+          });
+        }
+      }
+    };
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+  <!-- ─── Ambient Blobs ────────────────────────────────────────────────── -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+  </div>
+
+  <!-- ─── Header ──────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-icon">🔬</span>
+      <span class="logo-text">AI Research Explainer</span>
+      <span class="logo-badge">Engine</span>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" id="nav-search" onclick="showSection('search')">Search</button>
+      <button class="nav-btn" id="nav-about" onclick="showSection('about')">How It Works</button>
+    </nav>
+    <div class="header-status" id="api-status">
+      <span class="status-dot"></span>
+      <span class="status-text">Checking…</span>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       SEARCH SECTION
+  ════════════════════════════════════════════════════════════════════ -->
+  <main id="section-search" class="section active">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-eyebrow">Powered by Groq · LLaMA 3.3 · RAG · Kroki D2</div>
+      <h1 class="hero-title">
+        Understand <em>Anything</em> with<br />AI-Synthesized Research
+      </h1>
+      <p class="hero-sub">
+        Enter any topic. Our engine searches the web, reads multiple sources,
+        and generates a structured, visual explanation at every knowledge level.
+      </p>
+
+      <!-- Search Card -->
+      <div class="search-card glass">
+        <div class="search-row">
+          <div class="search-field-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              id="query-input"
+              class="search-input"
+              type="text"
+              placeholder="e.g. Explain Transformers in Deep Learning…"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="search-clear" id="clear-btn" onclick="clearSearch()" aria-label="Clear">✕</button>
+          </div>
+        </div>
+
+        <!-- Typeahead chips -->
+        <div class="suggestions-row" id="suggestions-row"></div>
+
+        <!-- Options -->
+        <div class="options-row">
+          <div class="opt-group">
+            <label class="opt-label" for="level-select">Level</label>
+            <select id="level-select" class="opt-select">
+              <option value="all">All Levels</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="opt-group">
+            <label class="opt-label" for="sources-select">Sources</label>
+            <select id="sources-select" class="opt-select">
+              <option value="4">4 Sources</option>
+              <option value="6">6 Sources</option>
+              <option value="8">8 Sources</option>
+            </select>
+          </div>
+          <div class="opt-group toggle-group">
+            <label class="opt-label" for="code-toggle">Code</label>
+            <label class="toggle" for="code-toggle">
+              <input type="checkbox" id="code-toggle" checked />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <button class="explain-btn" id="explain-btn" onclick="runExplain()">
+            <span id="btn-text">✨ Explain</span>
+            <span id="btn-loader" class="btn-loader hidden"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Topics -->
+      <div class="quick-topics">
+        <span class="qt-label">Try:</span>
+        <button class="qt-chip" onclick="quickSearch('Reinforcement Learning')">Reinforcement Learning</button>
+        <button class="qt-chip" onclick="quickSearch('Attention Mechanism')">Attention Mechanism</button>
+        <button class="qt-chip" onclick="quickSearch('Gradient Descent')">Gradient Descent</button>
+        <button class="qt-chip" onclick="quickSearch('Blockchain Technology')">Blockchain</button>
+        <button class="qt-chip" onclick="quickSearch('Diffusion Models')">Diffusion Models</button>
+      </div>
+    </section>
+
+    <!-- ─── Pipeline Tracker ─────────────────────────────────────────── -->
+    <div class="pipeline-tracker hidden" id="pipeline-tracker">
+      <div class="pipeline-steps">
+        <div class="p-step" id="step-search">
+          <div class="p-step-icon">🔍</div>
+          <div class="p-step-label">Web Search</div>
+          <div class="p-step-bar"><div class="p-step-fill"></div></div>
+        </div>
+        <div class="p-step" id="step-scrape">
+          <div class="p-step-icon">🌐</div>
+          <div class="p-step-label">Scraping</div>
+          <div class="p-step-bar"><div class="p-step-fill"></div></div>
+        </div>
+        <div class="p-step" id="step-rag">
+          <div class="p-step-icon">📚</div>
+          <div class="p-step-label">RAG Retrieval</div>
+          <div class="p-step-bar"><div class="p-step-fill"></div></div>
+        </div>
+        <div class="p-step" id="step-llm">
+          <div class="p-step-icon">🤖</div>
+          <div class="p-step-label">LLM Generation</div>
+          <div class="p-step-bar"><div class="p-step-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Error Banner ─────────────────────────────────────────────── -->
+    <div class="error-banner hidden" id="error-banner">
+      <span>⚠️</span>
+      <span id="error-text"></span>
+      <button onclick="dismissError()">✕</button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         RESULTS SECTION
+    ════════════════════════════════════════════════════════════════ -->
+    <section class="results-section hidden" id="results-section">
+
+      <!-- ── AI Teacher Header (mirrors screenshot 2) ───────────────── -->
+      <div class="teacher-header glass">
+        <div class="teacher-label">
+          <span>🤖</span> AI TEACHER EXPLANATION
+        </div>
+
+        <!-- Image + Video row exactly like screenshot 2 -->
+        <div class="media-row" id="media-row">
+          <div class="media-item" id="media-img-wrap">
+            <img id="res-img" src="" alt="Technical Reference" onerror="this.parentElement.style.display='none'" />
+            <div class="media-caption">TECHNICAL REFERENCE IMAGE</div>
+          </div>
+          <div class="media-item" id="media-vid-wrap">
+            <iframe id="res-video" src="" title="Tutorial Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <div class="media-caption">CONCEPTUAL VIDEO GUIDE</div>
+          </div>
+        </div>
+
+        <!-- Title + summary below media (matches screenshot 2 layout) -->
+        <div class="result-title-block">
+          <div class="results-header">
+            <h2 id="res-title">Loading…</h2>
+            <p id="res-summary"></p>
+            <button class="download-pdf-btn" id="download-pdf-btn" onclick="downloadTopicPDF()" style="display:none;">
+              📄 Download PDF Report
+            </button>
+          </div>
+        </div>
+
+      <!-- ── Tab Navigation ────────────────────────────────────────── -->
+      <div class="tab-nav glass">
+        <button class="tab-btn active" id="tab-beginner"  onclick="showTab('beginner')">🌱 Beginner</button>
+        <button class="tab-btn"        id="tab-mechanics" onclick="showTab('mechanics')">⚙️ Mechanics</button>
+        <button class="tab-btn"        id="tab-advanced"  onclick="showTab('advanced')">🚀 Advanced</button>
+        <button class="tab-btn"        id="tab-diagram"   onclick="showTab('diagram')">📊 Diagram</button>
+        <button class="tab-btn"        id="tab-code"      onclick="showTab('code')">💻 Code</button>
+        <button class="tab-btn"        id="tab-quiz"      onclick="showTab('quiz')">🧠 Quiz</button>
+        <button class="tab-btn" id="tab-socratic" onclick="showTab('socratic')">🤔 Socratic</button>
+        <button class="tab-btn" id="tab-teach" onclick="showTab('teach')">👨‍🏫 Teach AI</button>
+        <button class="tab-btn" id="tab-sources" onclick="showTab('sources')">🔗 Sources</button>
+      </div>
+
+      <!-- ── Tab Panels ─────────────────────────────────────────────── -->
+      <div class="tab-panels">
+
+        <!-- Beginner -->
+        <div class="tab-panel active" id="panel-beginner">
+          <div class="panel-card glass">
+            <div class="panel-heading"><span>🌱</span> Beginner Explanation</div>
+            <div class="markdown-body tex2jax_process" id="res-beginner"></div>
+          </div>
+          <div class="key-takeaways glass" id="key-takeaways-wrap">
+            <div class="panel-heading"><span>💡</span> Key Takeaways</div>
+            <ul class="takeaways-list" id="res-takeaways"></ul>
+          </div>
+        </div>
+
+        <!-- Mechanics -->
+        <div class="tab-panel" id="panel-mechanics">
+          <div class="panel-card glass">
+            <div class="panel-heading"><span>⚙️</span> Core Mechanics</div>
+            <div class="markdown-body tex2jax_process" id="res-mechanics"></div>
+          </div>
+        </div>
+
+        <!-- Advanced -->
+        <div class="tab-panel" id="panel-advanced">
+          <div class="panel-card glass">
+            <div class="panel-heading"><span>🚀</span> Advanced Concepts</div>
+            <div class="markdown-body tex2jax_process" id="res-advanced"></div>
+          </div>
+          <div class="applications-card glass">
+            <div class="panel-heading"><span>🌍</span> Real-World Applications</div>
+            <div class="apps-grid" id="res-apps"></div>
+          </div>
+        </div>
+
+
+        <!-- D2 Diagram (Kroki rendered) -->
+        <div class="tab-panel" id="panel-diagram">
+          <div class="panel-card glass">
+            <div class="panel-heading">
+              <span>📊</span> D2 Architecture Diagram
+              <span class="kroki-badge">via Kroki.io</span>
+            </div>
+
+            <!-- Loading state -->
+            <div class="diagram-loading" id="diagram-loading">
+              <div class="diag-spinner"></div>
+              <span>Rendering diagram with Kroki.io…</span>
+            </div>
+
+            <!-- SVG output -->
+            <div class="diagram-svg-wrap" id="diagram-svg-wrap"></div>
+
+            <!-- D2 source code (collapsible) - Hidden by default -->
+            <details class="d2-source-details hidden" id="d2-source-details" style="display:none;">
+              <summary>View D2 Source Code</summary>
+              <pre class="d2-source-code" id="d2-source-code"></pre>
+            </details>
+
+            <!-- Error state -->
+            <div class="diagram-error hidden" id="diagram-error">
+              <span>⚠️</span>
+              <span id="diagram-error-text">Could not render diagram.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code -->
+        <div class="tab-panel" id="panel-code">
+          <div class="panel-card glass">
+            <div class="panel-heading">
+              <span>💻</span> Python Implementation
+              <button class="copy-btn" id="copy-code-btn" onclick="copyCode()">📋 Copy</button>
+            </div>
+            <pre class="code-block" id="res-code"><code id="res-code-inner"></code></pre>
+            <div class="no-code-msg hidden" id="no-code-msg">
+              Code example was not requested. Re-run with "Code" toggle enabled.
+            </div>
+          </div>
+        </div>
+
+        <!-- 🧠 Advanced Mastery Quiz Panel -->
+        <div class="tab-panel" id="panel-quiz">
+          <div class="panel-card glass quiz-container">
+            <div class="panel-heading">
+              <span>🧠</span> Brain Mastery Challenge
+              <div id="quiz-progress-bar"><div id="quiz-progress-fill"></div></div>
+            </div>
+
+            <!-- Quiz Start View -->
+            <div id="quiz-intro" class="quiz-view">
+              <h3>Ready to test your concept mastery?</h3>
+              <p>This is an <strong>Adaptive Learning Challenge</strong>. The AI will detect your weak areas and intervene if you struggle.</p>
+              <div class="quiz-modes-list">
+                <span>🛡️ AI vs Student</span>
+                <span>🎮 Scenarios</span>
+                <span>💻 Code Blocks</span>
+              </div>
+              <button class="start-quiz-btn" onclick="startTechnicalQuiz()">🚀 Start Challenge</button>
+            </div>
+
+            <!-- Question View -->
+            <div id="quiz-question-view" class="quiz-view hidden">
+               <div class="q-meta">
+                 <span id="q-mode-badge">Scenario</span>
+                 <span id="q-count">Question 1 of 5</span>
+               </div>
+               
+               <!-- Contextual Info (Match list, code, etc) -->
+               <div id="q-context-info" class="q-context-info hidden"></div>
+
+               <h4 id="q-text">Is this question text?</h4>
+               <div id="q-options" class="q-options-grid"></div>
+               
+               <!-- AI Intervention (Hidden by default) -->
+               <div id="q-intervention" class="q-intervention hidden">
+                 <div class="int-header">🤖 AI Guidance Intervention</div>
+                 <div id="int-text"></div>
+               </div>
+               
+               <div class="quiz-footer">
+                  <button id="next-q-btn" class="next-btn hidden" onclick="nextQuestion()">Next Question ➜</button>
+               </div>
+            </div>
+
+            <!-- Results View -->
+            <div id="quiz-results-view" class="quiz-view hidden">
+              <h3>Mission Complete!</h3>
+              <div id="score-circle">0/5</div>
+              
+              <!-- 🎓 Mastery Summary -->
+              <div id="mastery-summary-box" class="mastery-summary-box hidden"></div>
+
+              <div class="knowledge-mapping">
+                <h4>Your Technical Knowledge Map:</h4>
+                <div id="k-map-tags" class="k-map-tags"></div>
+              </div>
+
+              <!-- 🚩 New: Detailed Concept Gaps -->
+              <div id="quiz-gaps-view" class="quiz-gaps-view hidden">
+                <h4>Concept Gaps Detected:</h4>
+                <div id="gaps-list" class="gaps-list"></div>
+              </div>
+
+              <div id="learning-path" class="learning-path">
+                <h4>Recommended Learning Path:</h4>
+                <ul id="path-list"></ul>
+              </div>
+              <button class="restart-quiz-btn" onclick="startTechnicalQuiz()">🔄 Retake Quiz</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sources -->
+        <div class="tab-panel" id="panel-sources">
+          <div class="panel-card glass">
+            <div class="panel-heading"><span>🔗</span> Sources Consulted</div>
+            <ul class="sources-list" id="res-sources"></ul>
+          </div>
+        </div>
+
+        <!-- 🤔 Socratic Tutor Panel -->
+        <div class="tab-panel" id="panel-socratic">
+          <div class="panel-card glass socratic-container">
+            <div class="panel-heading"><span>🤔</span> Socratic Tutor</div>
+            <div class="socratic-intro" id="socratic-intro">
+              <h3>Learn Through Guided Questions</h3>
+              <p>Instead of giving answers, the <strong>Socratic AI Tutor</strong> will guide you to discover them yourself through interactive questioning.</p>
+              <div class="socratic-modes-list">
+                <span>🎯 Guided Discovery</span>
+                <span>🧠 Critical Thinking</span>
+                <span>📈 Progress Tracking</span>
+              </div>
+              <button class="start-socratic-btn" onclick="startSocraticTutor()">🎯 Start Socratic Session</button>
+            </div>
+            <div class="socratic-chat hidden" id="socratic-chat">
+              <div class="socratic-progress"><div class="socratic-progress-fill" id="socratic-progress-fill"></div></div>
+              <div class="socratic-messages" id="socratic-messages"></div>
+              <div class="socratic-input-area">
+                <input type="text" id="socratic-input" placeholder="Type your answer..." onkeydown="if(event.key==='Enter') submitSocraticAnswer()">
+                <button onclick="submitSocraticAnswer()">Send</button>
+              </div>
+            </div>
+            <div class="socratic-summary hidden" id="socratic-summary">
+              <h3>🎉 Session Complete!</h3>
+              <div class="socratic-explanation" id="socratic-explanation"></div>
+              <button class="restart-socratic-btn" onclick="startSocraticTutor()">🔄 New Session</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ‍🏫 Teach AI Panel -->
+        <div class="tab-panel" id="panel-teach">
+          <div class="panel-card glass teach-container">
+            <div class="panel-heading"><span>👨‍🏫</span> Teach the AI</div>
+            <div class="teach-intro" id="teach-intro">
+              <h3>Become the Teacher</h3>
+              <p>Explain the concept to the <strong>AI Student</strong> as if teaching a beginner. The AI will ask clarifying questions and evaluate your explanation.</p>
+              <div class="teach-modes-list">
+                <span>🎓 Role Reversal</span>
+                <span>📊 Evaluation</span>
+                <span>💡 Feedback</span>
+              </div>
+              <button class="start-teach-btn" onclick="startTeachAI()">🎓 Start Teaching</button>
+            </div>
+            <div class="teach-session hidden" id="teach-session">
+              <div class="teach-prompt">
+                <p>Explain <strong id="teach-topic-name"></strong> to the confused student below:</p>
+              </div>
+              <div class="teach-conversation" id="teach-conversation">
+                <div class="teach-ai-message">
+                  <span class="teach-avatar">🤔</span>
+                  <div class="teach-message-content">
+                    Hi! I'm confused about this topic. Can you explain it to me?
+                  </div>
+                </div>
+              </div>
+              <div class="teach-input-area">
+                <textarea id="teach-input" rows="4" placeholder="Explain the concept here..."></textarea>
+                <button onclick="submitTeaching()">📤 Submit Explanation</button>
+              </div>
+            </div>
+            <div class="teach-evaluation hidden" id="teach-evaluation">
+              <h3>📝 Teaching Evaluation</h3>
+              <div class="teach-score-circle" id="teach-score">0</div>
+              <div class="teach-feedback" id="teach-feedback"></div>
+              <div class="teach-strengths-gaps">
+                <div class="teach-strengths">
+                  <h4>✅ Strengths</h4>
+                  <ul id="teach-strengths-list"></ul>
+                </div>
+                <div class="teach-gaps">
+                  <h4>⚠️ Gaps to Address</h4>
+                  <ul id="teach-gaps-list"></ul>
+                </div>
+              </div>
+              <div class="teach-perfect-exp">
+                <h4>💡 Model Explanation</h4>
+                <div id="teach-model-exp"></div>
+              </div>
+              <button class="restart-teach-btn" onclick="startTeachAI()">🔄 Teach Again</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tab-panels -->
+    </section><!-- /results-section -->
+
+  </main><!-- /section-search -->
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       HOW IT WORKS SECTION
+  ════════════════════════════════════════════════════════════════════ -->
+  <main id="section-about" class="section">
+    <div class="about-container">
+      <h2 class="about-title">How the Engine Works</h2>
+      <p class="about-sub">A 7-stage pipeline from query to structured visual explanation.</p>
+
+      <div class="pipeline-viz">
+        <div class="pipe-card glass"><div class="pipe-number">01</div><div class="pipe-icon">🔍</div><h3>Web Discovery</h3><p>DuckDuckGo finds the most relevant pages for your query.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">02</div><div class="pipe-icon">🌐</div><h3>Scraping</h3><p>Playwright + Trafilatura extract clean text from webpages.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">03</div><div class="pipe-icon">📚</div><h3>RAG Retrieval</h3><p>Sentence-Transformers + FAISS find the most relevant chunks.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">04</div><div class="pipe-icon">🤖</div><h3>LLM Synthesis</h3><p>LLaMA 3.3 70B via Groq generates a structured explanation + D2 diagram code.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">05</div><div class="pipe-icon">📊</div><h3>Kroki Diagrams</h3><p>D2 code is sent to Kroki.io → returns a rendered SVG architecture diagram.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">06</div><div class="pipe-icon">🖼️</div><h3>Wikipedia + YouTube</h3><p>A relevant research image and tutorial video are fetched automatically.</p></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-card glass"><div class="pipe-number">07</div><div class="pipe-icon">📖</div><h3>Structured Output</h3><p>Beginner → Advanced breakdown with diagram, code and cited sources.</p></div>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-badge glass">🐍 Python</div>
+        <div class="tech-badge glass">⚡ FastAPI</div>
+        <div class="tech-badge glass">🦙 LLaMA 3.3 70B</div>
+        <div class="tech-badge glass">📊 D2 + Kroki.io</div>
+        <div class="tech-badge glass">🔗 RAG Pipeline</div>
+        <div class="tech-badge glass">📐 FAISS</div>
+        <div class="tech-badge glass">🤗 Sentence-Transformers</div>
+        <div class="tech-badge glass">🎭 Playwright</div>
+        <div class="tech-badge glass">🦆 DuckDuckGo Search</div>
+        <div class="tech-badge glass">🖼️ Wikipedia API</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── Footer ──────────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <span>AI Research Explainer Engine · FastAPI + Groq + RAG + Kroki D2</span>
+    <span class="footer-sep">·</span>
+    <a href="http://localhost:8000/docs" target="_blank" class="footer-link">API Docs ↗</a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

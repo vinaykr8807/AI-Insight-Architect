@@ -3,7 +3,7 @@
    Kroki.io D2 rendering + Wikipedia image + YouTube embed + RAG explanation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const API_BASE   = 'http://localhost:8000';
+const API_BASE   = window.location.origin;
 const KROKI_BASE = 'https://kroki.io';
 
 let currentData    = null;
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // YouTube blocks <iframe> embeds on file:/// URLs (throws Error 153).
   // Redirect the user to the FastAPI-hosted localhost server to fix this.
   if (window.location.protocol === 'file:') {
-    window.location.href = 'http://localhost:8000/';
+    window.location.href = `${window.location.origin}/`;
     return;
   }
   
@@ -1068,5 +1068,4 @@ async function downloadTopicPDF() {
     btn.disabled = false;
   }
 }
-
 

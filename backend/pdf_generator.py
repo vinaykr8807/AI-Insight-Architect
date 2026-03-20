@@ -1,6 +1,6 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -83,19 +83,16 @@ def generate_topic_pdf(topic_data):
         backColor=colors.HexColor('#f3f4f6')
     )
     
-    # Title Page
-    elements.append(Spacer(1, 0.5*inch))
-    elements.append(Paragraph(f"📚 {topic_data.get('title', 'Topic')}", title_style))
+    # Title and summary
     elements.append(Spacer(1, 0.2*inch))
+    elements.append(Paragraph(f"📚 {topic_data.get('title', 'Topic')}", title_style))
+    elements.append(Spacer(1, 0.1*inch))
     
     # Summary
     if topic_data.get('summary'):
         elements.append(Paragraph("Executive Summary", section_style))
         elements.append(Paragraph(topic_data['summary'], body_style))
         elements.append(Spacer(1, 0.1*inch))
-    
-    # Page break after summary
-    elements.append(PageBreak())
     
     # Beginner Explanation
     if topic_data.get('beginner_explanation'):
@@ -126,9 +123,6 @@ def generate_topic_pdf(topic_data):
         elements.append(Paragraph(advanced_text, body_style))
         elements.append(Spacer(1, 0.15*inch))
     
-    # Page break before equations
-    elements.append(PageBreak())
-    
     # Mathematical Equations
     elements.append(Paragraph("📐 Mathematical Foundation", section_style))
     elements.append(Paragraph("The following equations and formulas are fundamental to understanding this topic:", body_style))
@@ -148,27 +142,6 @@ def generate_topic_pdf(topic_data):
         elements.append(Paragraph("• Mathematical formulations are derived from the core principles discussed above.", body_style))
         elements.append(Paragraph("• Refer to academic papers for detailed derivations.", body_style))
     
-    # Page break before diagram
-    elements.append(PageBreak())
-    
-    # Architecture Diagram
-    elements.append(Paragraph("📊 Architecture Diagram", section_style))
-    elements.append(Paragraph("The following diagram illustrates the key components and relationships:", body_style))
-    elements.append(Spacer(1, 0.15*inch))
-    
-    # Only show rendered diagram image, not D2 code
-    if topic_data.get('d2_code'):
-        try:
-            diagram_img = fetch_diagram_image(topic_data['d2_code'])
-            if diagram_img:
-                elements.append(diagram_img)
-                elements.append(Spacer(1, 0.2*inch))
-            else:
-                elements.append(Paragraph("Diagram could not be rendered. Please check the web interface for the interactive diagram.", body_style))
-        except Exception as e:
-            print(f"Could not fetch diagram: {e}")
-            elements.append(Paragraph("Diagram rendering failed. Please check the web interface for the interactive diagram.", body_style))
-    
     # Real-World Applications
     if topic_data.get('real_world_applications'):
         elements.append(Paragraph("🌍 Real-World Applications", section_style))
@@ -178,7 +151,6 @@ def generate_topic_pdf(topic_data):
     
     # Code Example
     if topic_data.get('code_example'):
-        elements.append(PageBreak())
         elements.append(Paragraph("💻 Implementation Example", section_style))
         elements.append(Paragraph("The following code demonstrates key concepts:", body_style))
         elements.append(Spacer(1, 0.1*inch))
@@ -187,7 +159,6 @@ def generate_topic_pdf(topic_data):
     
     # Sources
     if topic_data.get('sources'):
-        elements.append(PageBreak())
         elements.append(Paragraph("🔗 References", section_style))
         for i, src in enumerate(topic_data['sources'][:10], 1):  # Limit to 10 sources
             title = src.get('title', 'Unknown')

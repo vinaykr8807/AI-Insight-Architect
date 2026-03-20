@@ -49,8 +49,7 @@ playwright install chromium
 echo "GROQ_API_KEY=your_key_here" > .env
 
 # 4. Run backend
-cd backend
-python main.py
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
 # 5. Open browser
 # Navigate to http://localhost:8000
@@ -88,7 +87,7 @@ PEXELS_API_KEY=your_pexels_api_key (optional)
 ## Usage
 
 ### Web Interface
-1. Start backend: `python backend/main.py`
+1. Start backend: `uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
 2. Open http://localhost:8000 in browser
 3. Enter a query and select knowledge level
 4. Explore results in tabs: Beginner → Code → Diagram → Quiz → Socratic
